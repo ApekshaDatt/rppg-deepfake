@@ -125,6 +125,7 @@ _DEFAULTS = dict(
     raw_dominant_freq=0.0, raw_threat_score_str="—",
     pulse_present=False, loop_score=0.0,
     camera_index=0, cap=None, render_count=0,
+    latched_threat=False,
 )
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
@@ -218,6 +219,7 @@ with col_left:
         st.session_state.raw_sig_quality     = 0.0
         st.session_state.raw_snr             = 0.0
         st.session_state.raw_dominant_freq   = 0.0
+        st.session_state.latched_threat      = False
         st.session_state.face_detector.reset()
 
     if st.session_state.mode == "live":
@@ -519,7 +521,10 @@ try:
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 215, 255), 2)
             frame_ph.image(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB),
                             channels="RGB", use_container_width=True)
-            st.session_state.verdict = "UNCERTAIN"
+            # If we previously caught a deepfake, keep it latched.
+            # Otherwise, we can safely show UNCERTAIN.
+            if not st.session_state.latched_threat:
+                st.session_state.verdict = "UNCERTAIN"
             render_ui_state()
             time.sleep(0.033)
             continue
@@ -565,6 +570,16 @@ try:
 
         # ── 5. Push results into session state ────────────────────────────
         v = result.get("verdict", "UNCERTAIN") if not is_cal else "CALIBRATING"
+        
+        # Biometric Threat Latching:
+        # If a deepfake is detected at ANY point, the entire session is compromised.
+        # We lock the verdict to THREAT so it cannot be undone by looking away.
+        if v == "THREAT":
+            st.session_state.latched_threat = True
+            
+        if st.session_state.latched_threat and not is_cal:
+            v = "THREAT"
+            
         st.session_state.verdict             = v
         st.session_state.is_calibrating      = is_cal
         st.session_state.bpm                 = result.get("bpm", 0.0)
