@@ -117,20 +117,36 @@ def detect_loop(signal: np.ndarray) -> dict:
             peak_values.append(val)
 
     # ── (g) Decision logic ────────────────────────────────────────────────
-    # Require at least TWO high peaks for a confident loop detection.
-    # A 4-second deepfake loop in a 10-second window will only have 2 peaks
-    # (at lag 4s and 8s). Requiring 3 peaks mathematically blinded the system
-    # to any loop longer than 3.3 seconds!
     if len(peak_indices) >= 2:
-        # Check regular spacing as before
         spacings = np.diff(peak_indices).astype(float)
-        mean_spacing = np.mean(spacings)
-        spacing_variance = np.var(spacings)
-        relative_std = np.sqrt(spacing_variance) / (mean_spacing + 1e-10)
-        regular = relative_std < 0.10  # stricter regularity threshold
-        if regular:
-            loop_detected = True
-            loop_score = float(np.mean(peak_values))
+        mean_spacing = float(np.mean(spacings)) if len(spacings) > 0 else float(peak_indices[0])
+        
+        # Biometric Frequency Guard:
+        # Real heartbeats (spacing < 45 frames) can sometimes be highly stable.
+        # To avoid false positives on real humans with clean, resting heart rates,
+        # we require an impossibly high mathematical correlation (0.96) and at
+        # least 6 stable beats to classify a biological rhythm as a synthetic loop.
+        # Macroscopic video loops (>= 45 frames) use the standard config threshold.
+        is_biological = mean_spacing < 45.0
+        min_required_peaks = 6 if is_biological else 2
+        required_corr = 0.96 if is_biological else LOOP_CORR_THRESHOLD
+        
+        if len(peak_indices) >= min_required_peaks:
+            # Re-verify that the peaks actually meet the stricter correlation threshold
+            valid_peaks = [val for val in peak_values if val >= required_corr]
+            if len(valid_peaks) >= min_required_peaks:
+                spacing_variance = np.var(spacings) if len(spacings) > 0 else 0.0
+                relative_std = np.sqrt(spacing_variance) / (mean_spacing + 1e-10)
+                regular = relative_std < 0.10  # stricter regularity threshold
+                if regular:
+                    loop_detected = True
+                    loop_score = float(np.mean(peak_values))
+                else:
+                    loop_detected = False
+                    loop_score = float(np.max(peak_values))
+            else:
+                loop_detected = False
+                loop_score = float(np.max(peak_values))
         else:
             loop_detected = False
             loop_score = float(np.max(peak_values))

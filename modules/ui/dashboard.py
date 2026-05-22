@@ -104,6 +104,9 @@ p,div,span,label { color:#D5D8DC !important; }
             display:inline-block; animation:pg 2s infinite; margin-right:6px; }
 .dot-off { height:12px; width:12px; background:#555; border-radius:50%;
             display:inline-block; margin-right:6px; }
+[data-testid="stMetricValue"] {
+    font-size: 1.6rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -125,7 +128,7 @@ _DEFAULTS = dict(
     raw_dominant_freq=0.0, raw_threat_score_str="—",
     pulse_present=False, loop_score=0.0,
     camera_index=0, cap=None, render_count=0,
-    latched_threat=False,
+    latched_threat=False, bpm_history=[],
 )
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
@@ -211,6 +214,7 @@ with col_left:
         st.session_state.fft_power           = []
         st.session_state.verdict             = "CALIBRATING"
         st.session_state.bpm                 = 0.0
+        st.session_state.bpm_history         = []
         st.session_state.confidence          = 0.0
         st.session_state.is_calibrating      = True
         st.session_state.session_log         = []
@@ -582,7 +586,16 @@ try:
             
         st.session_state.verdict             = v
         st.session_state.is_calibrating      = is_cal
-        st.session_state.bpm                 = result.get("bpm", 0.0)
+        
+        # Calculate average BPM
+        current_bpm = result.get("bpm", 0.0)
+        if current_bpm > 0:
+            st.session_state.bpm_history.append(current_bpm)
+        if st.session_state.bpm_history:
+            st.session_state.bpm = sum(st.session_state.bpm_history) / len(st.session_state.bpm_history)
+        else:
+            st.session_state.bpm = 0.0
+            
         st.session_state.confidence          = result.get("confidence", 0.0)
         st.session_state.loop_detected       = result.get("loop_detected", False)
         st.session_state.loop_score          = result.get("loop_score", 0.0)
