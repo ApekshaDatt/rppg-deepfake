@@ -1,17 +1,19 @@
 import streamlit as st
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 import sys
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Ensure project root is on path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from logger import log_result
+from modules.ui.display import draw_overlay
+from modules.ui.plotter import generate_signal_plot
+from modules.ui.logger import log_result
 
 # Pipeline Modules
 from config import BUFFER_SIZE, FPS, CALIBRATION_FRAMES, VERDICT_REAL, VERDICT_THREAT, VERDICT_UNCERTAIN
@@ -42,12 +44,15 @@ h1, h2, h3, p, div { color: white !important; font-family: 'Segoe UI', sans-seri
 """, unsafe_allow_html=True)
 
 # -----------------------------------
-# HEADER & STATUS CARDS
+# HEADER
 # -----------------------------------
 st.title("🛡️ PulseShield AI")
 st.subheader("Biometric Physics for Deepfake Detection")
 st.markdown("---")
 
+# -----------------------------------
+# STATUS CARDS
+# -----------------------------------
 col1, col2, col3 = st.columns(3)
 col1.metric("System Status", "ACTIVE")
 col2.metric("Threat Level", "LIVE ANALYSIS")
@@ -120,7 +125,6 @@ while True:
     rppg_signal = rppg_output["rppg_signal"]
     estimated_bpm = rppg_output["estimated_bpm"]
     is_calibrating = rppg_output["is_calibrating"]
-
     signal_quality = rppg_output.get("signal_quality", 1.0)
 
     # 5. Analyze Threat
@@ -152,7 +156,7 @@ while True:
             log_text = "[INFO] Biological pulse signal extracted\n[INFO] Rhythm appears natural\n[INFO] Threat confidence low"
         elif v == VERDICT_THREAT:
             pulse_str = "UNSTABLE"
-            box_color = (0, 0, 255) # Red in BGR, but we convert to RGB for UI
+            box_color = (0, 0, 255) # Red in BGR
             graph_color = "#ef4444"
             verdict_html = "<h2 style='color:#ef4444;'>VERDICT: THREAT DETECTED</h2>"
             log_text = "[WARNING] Pulse signal unstable\n[ALERT] Synthetic periodicity detected\n[CRITICAL] Deepfake threat suspected"
@@ -166,7 +170,6 @@ while True:
     # Draw BBox
     if face_detected:
         cv2.rectangle(frame, (x, y), (x+w, y+h), box_color, 3)
-        # BGR text for OpenCV (Note: box_color is used directly)
         cv2.putText(frame, v, (x, max(0, y-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, box_color, 2)
 
     # Convert to RGB for Streamlit
@@ -182,9 +185,7 @@ while True:
 
     # 7. Plot Graph
     fig, ax = plt.subplots(figsize=(5,2))
-    # Plot recent 10 seconds (up to BUFFER_SIZE)
     t = np.linspace(0, 10, len(rppg_signal))
-    # Correct red color for RGB is actually used in matplotlib
     ax.plot(t, rppg_signal, color=graph_color)
     ax.set_facecolor("#111827")
     fig.patch.set_facecolor("#111827")
