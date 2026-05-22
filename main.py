@@ -376,13 +376,26 @@ def run_pipeline(source: int | str = 0) -> None:
             # ================================================================
             # STEP 8: Log result (Person D or no-op stub)
             # ================================================================
-            log_result(
-                timestamp=timestamp,
-                verdict=verdict_dict.get("verdict", VERDICT_UNCERTAIN),
-                confidence=verdict_dict.get("confidence", 0.0),
-                bpm=verdict_dict.get("bpm", 0.0),
-                loop_detected=verdict_dict.get("loop_detected", False),
-            )
+            v = verdict_dict.get("verdict", VERDICT_UNCERTAIN)
+            b = verdict_dict.get("bpm", 0.0)
+            c = verdict_dict.get("confidence", 0.0)
+            
+            try:
+                # New logger.py expects 4 args: (verdict, bpm, confidence, pulse)
+                bpm_str = f"{b:.1f} BPM" if b > 0 else "N/A"
+                conf_str = f"{c*100:.0f}%"
+                pulse_str = "STABLE" if v == VERDICT_REAL else ("UNSTABLE" if v == VERDICT_THREAT else "WEAK")
+                
+                log_result(v, bpm_str, conf_str, pulse_str)
+            except TypeError:
+                # Fallback to stub signature
+                log_result(
+                    timestamp=timestamp,
+                    verdict=v,
+                    confidence=c,
+                    bpm=b,
+                    loop_detected=verdict_dict.get("loop_detected", False),
+                )
 
             # ================================================================
             # Key handler
