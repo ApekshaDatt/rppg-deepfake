@@ -165,8 +165,10 @@ def score_threat(fft_result: dict, loop_result: dict) -> dict:
         "bpm":              float(estimated_bpm) if pulse_present else 0.0,
         "pulse_present":    bool(pulse_present),
         "loop_detected":    bool(loop_detected),
+        "loop_score":       float(loop_score),
         "snr_score":        float(snr_score),
         "dominant_freq_hz": float(dominant_freq_hz),
+        "raw_threat_score": round(float(raw_threat_score), 3),
     }
 
 
