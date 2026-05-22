@@ -117,18 +117,14 @@ def detect_loop(signal: np.ndarray) -> dict:
             peak_values.append(val)
 
     # ── (g) Decision logic ────────────────────────────────────────────────
-    if len(peak_indices) >= 2:
-        # Check whether peaks are regularly spaced (low spacing variance)
+    # Require at least three high peaks for a confident loop detection
+    if len(peak_indices) >= 3:
+        # Check regular spacing as before
         spacings = np.diff(peak_indices).astype(float)
         mean_spacing = np.mean(spacings)
         spacing_variance = np.var(spacings)
-
-        # Normalised variance relative to mean spacing — a perfectly tiled
-        # signal will have variance ≈ 0.  We allow up to 15 % relative
-        # standard-deviation as "regular".
         relative_std = np.sqrt(spacing_variance) / (mean_spacing + 1e-10)
-        regular = relative_std < 0.15
-
+        regular = relative_std < 0.10  # stricter regularity threshold
         if regular:
             loop_detected = True
             loop_score = float(np.mean(peak_values))
@@ -136,8 +132,8 @@ def detect_loop(signal: np.ndarray) -> dict:
             loop_detected = False
             loop_score = float(np.max(peak_values))
     else:
+        # Fallback: not enough peaks → not a loop
         loop_detected = False
-        # Best coefficient we did find (may still be below threshold)
         if len(peak_values) > 0:
             loop_score = float(np.max(peak_values))
         elif len(positive_lags) > 0:
