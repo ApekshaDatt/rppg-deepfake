@@ -2,7 +2,7 @@ import numpy as np
 from .signal_extractor import SignalExtractor
 from .preprocessor import Preprocessor
 from .rppg_algorithms import RPPGAlgorithms
-from config import BUFFER_SIZE, FPS
+from config import BUFFER_SIZE, FPS, CALIBRATION_FRAMES
 
 class RPPGEngine:
     def __init__(self):
@@ -11,12 +11,9 @@ class RPPGEngine:
         self.algorithms = RPPGAlgorithms()
         self.method = "CHROM"
 
-    def __call__(self, data_packet):
-        roi_f = data_packet.get("roi_forehead")
-        roi_c = data_packet.get("roi_cheeks")
-        
-        means_f = self.extractor.extract_rgb_means(roi_f) if roi_f is not None else None
-        means_c = self.extractor.extract_rgb_means(roi_c) if roi_c is not None else None
+    def __call__(self, roi_forehead, roi_cheeks, frame_count):
+        means_f = self.extractor.extract_rgb_means(roi_forehead) if roi_forehead is not None else None
+        means_c = self.extractor.extract_rgb_means(roi_cheeks) if roi_cheeks is not None else None
         
         if means_f is not None and means_c is not None:
             rgb_vals = (means_f + means_c) / 2
@@ -28,7 +25,6 @@ class RPPGEngine:
             rgb_vals = np.array([0.0, 0.0, 0.0])
             
         self.extractor.update_buffer(rgb_vals)
-        
         raw_signals = self.extractor.get_signals()
         
         if self.method == "CHROM":
@@ -39,8 +35,7 @@ class RPPGEngine:
         processed_signal = self.preprocessor.process(pulse_signal)
         bpm = self.algorithms.estimate_bpm(processed_signal)
         
-        is_calibrating = self.extractor.count < BUFFER_SIZE
-        
+        is_calibrating = frame_count < CALIBRATION_FRAMES
         quality = self._calculate_quality(processed_signal)
         
         return {
@@ -61,3 +56,10 @@ class RPPGEngine:
         peak_val = fft_vals[peak_idx]
         total_val = np.sum(fft_vals)
         return peak_val / total_val if total_val > 0 else 0.0
+
+engine = RPPGEngine()
+
+def process_signal(roi_forehead, roi_cheeks, frame_count, buffer_size=BUFFER_SIZE):
+    return engine(roi_forehead, roi_cheeks, frame_count)
+
+__all__ = ["process_signal", "RPPGEngine"]
