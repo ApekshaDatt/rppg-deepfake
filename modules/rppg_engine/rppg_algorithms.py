@@ -21,16 +21,19 @@ class RPPGAlgorithms:
         
         # SCIENTIFIC FIX: According to de Haan & Jeanne (2013), X and Y must be
         # bandpass filtered BEFORE computing their standard deviations (alpha ratio).
-        # Otherwise, low-frequency head motion completely dominates the variance,
-        # ruining the pulse extraction and causing false high-frequency noise peaks.
+        # We must DETREND them first to remove DC offsets, otherwise the IIR filter
+        # will suffer a massive step-response ringing transient that ruins the signal.
         try:
             from modules.threat_analyzer.fft_analyzer import apply_bandpass
-            xf = apply_bandpass(x, fps=FPS, low=0.7, high=3.0)
-            yf = apply_bandpass(y, fps=FPS, low=0.7, high=3.0)
+            from scipy import signal
+            x_det = signal.detrend(x)
+            y_det = signal.detrend(y)
+            xf = apply_bandpass(x_det, fps=FPS, low=0.7, high=3.0)
+            yf = apply_bandpass(y_det, fps=FPS, low=0.7, high=3.0)
             
             # Fallback to unfiltered if signal is too short for the filter order
             if len(xf) == 0 or len(yf) == 0:
-                xf, yf = x, y
+                xf, yf = x_det, y_det
         except Exception:
             xf, yf = x, y
         

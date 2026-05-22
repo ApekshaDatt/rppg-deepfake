@@ -42,8 +42,9 @@ def _compute_snr_threat(snr: float) -> float:
 
     "Unnaturally high" is defined as > SNR_THRESHOLD × 3.
     """
-    if snr <= 0.0:
-        # Dead / flat signal — maximally suspicious
+    if snr <= 6.0:
+        # Dead / flat signal or pure noise (periodogram of white noise)
+        # maximally suspicious
         return 1.0
 
     upper_bound = SNR_THRESHOLD * 3.0
@@ -117,11 +118,10 @@ def score_threat(fft_result: dict, loop_result: dict) -> dict:
     loop_detected    = loop_result.get("loop_detected", False)
     loop_score       = loop_result.get("loop_score", 0.0)
 
-    # ── (a) Compute raw threat score ──────────────────────────────────────
-    # no_pulse_component weight = 0.65:
-    #   No-pulse + suspicious SNR → 0.65 + 0.10*1.0 = 0.75 >= THREAT_THRESHOLD.
+    # no_pulse_component weight = 0.75:
+    #   No-pulse → 0.75 >= THREAT_THRESHOLD (instant threat).
     #   Pulse present + clean SNR → 0.00 + 0.00 = 0.00 → REAL.
-    no_pulse_component = 0.65 if not pulse_present else 0.0
+    no_pulse_component = 0.75 if not pulse_present else 0.0
     loop_component = 0.30 * float(loop_score) if loop_detected else 0.0
     snr_component = 0.10 * _compute_snr_threat(snr_score)
 

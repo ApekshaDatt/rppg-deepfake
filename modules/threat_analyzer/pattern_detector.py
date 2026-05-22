@@ -117,8 +117,11 @@ def detect_loop(signal: np.ndarray) -> dict:
             peak_values.append(val)
 
     # ── (g) Decision logic ────────────────────────────────────────────────
-    # Require at least three high peaks for a confident loop detection
-    if len(peak_indices) >= 3:
+    # Require at least TWO high peaks for a confident loop detection.
+    # A 4-second deepfake loop in a 10-second window will only have 2 peaks
+    # (at lag 4s and 8s). Requiring 3 peaks mathematically blinded the system
+    # to any loop longer than 3.3 seconds!
+    if len(peak_indices) >= 2:
         # Check regular spacing as before
         spacings = np.diff(peak_indices).astype(float)
         mean_spacing = np.mean(spacings)

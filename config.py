@@ -10,7 +10,7 @@ BANDPASS_LOW = 0.7              # Hz (42 BPM) - lower cardiac frequency bound
 BANDPASS_HIGH = 3.0             # Hz (180 BPM) - upper cardiac frequency bound
 THREAT_THRESHOLD = 0.75         # threat_score >= 0.75 → THREAT verdict
 LOOP_CORR_THRESHOLD = 0.92      # autocorrelation > 0.92 → periodic loop detected
-SNR_THRESHOLD = 12.0            # Mathematically robust threshold to reject pure noise & motion
+SNR_THRESHOLD = 8.0             # Strict enough to reject noise, low enough for webcams
 VERDICT_WINDOW = 5              # rolling window size for verdict aggregation
 FPS = 30                         # frames per second (video capture rate)
 BUFFER_SIZE = 300               # samples (10 sec @ 30 FPS)
