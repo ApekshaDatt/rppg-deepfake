@@ -19,8 +19,23 @@ class RPPGAlgorithms:
         x = 3 * r - 2 * g
         y = 1.5 * r + g - 1.5 * b
         
-        sx = np.std(x)
-        sy = np.std(y)
+        # SCIENTIFIC FIX: According to de Haan & Jeanne (2013), X and Y must be
+        # bandpass filtered BEFORE computing their standard deviations (alpha ratio).
+        # Otherwise, low-frequency head motion completely dominates the variance,
+        # ruining the pulse extraction and causing false high-frequency noise peaks.
+        try:
+            from modules.threat_analyzer.fft_analyzer import apply_bandpass
+            xf = apply_bandpass(x, fps=FPS, low=0.7, high=3.0)
+            yf = apply_bandpass(y, fps=FPS, low=0.7, high=3.0)
+            
+            # Fallback to unfiltered if signal is too short for the filter order
+            if len(xf) == 0 or len(yf) == 0:
+                xf, yf = x, y
+        except Exception:
+            xf, yf = x, y
+        
+        sx = np.std(xf)
+        sy = np.std(yf)
         
         if sy == 0:
             return x
