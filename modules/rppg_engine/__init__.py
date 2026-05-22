@@ -49,6 +49,10 @@ class RPPGEngine:
     def _calculate_quality(self, signal):
         if len(signal) < 2:
             return 0.0
+        # Guard: if the signal is near-zero (flat/no-variance), quality is 0
+        # This catches the case where preprocessor returned zeros due to constant input
+        if np.std(signal) < 1e-6:
+            return 0.0
         fft_vals = np.abs(np.fft.rfft(signal))
         peak_idx = np.argmax(fft_vals)
         if peak_idx == 0:
@@ -57,9 +61,17 @@ class RPPGEngine:
         total_val = np.sum(fft_vals)
         return peak_val / total_val if total_val > 0 else 0.0
 
+    def reset(self):
+        """Clear the signal buffer so a new analysis session starts fresh."""
+        self.extractor = SignalExtractor()
+
 engine = RPPGEngine()
 
 def process_signal(roi_forehead, roi_cheeks, frame_count, buffer_size=BUFFER_SIZE):
     return engine(roi_forehead, roi_cheeks, frame_count)
 
-__all__ = ["process_signal", "RPPGEngine"]
+def reset_engine():
+    """Reset the global rPPG engine buffer. Call when starting a new session."""
+    engine.reset()
+
+__all__ = ["process_signal", "reset_engine", "RPPGEngine"]

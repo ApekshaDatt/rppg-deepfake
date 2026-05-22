@@ -118,16 +118,20 @@ def score_threat(fft_result: dict, loop_result: dict) -> dict:
     loop_score       = loop_result.get("loop_score", 0.0)
 
     # ── (a) Compute raw threat score ──────────────────────────────────────
-    no_pulse_component = 0.40 if not pulse_present else 0.0
-    loop_component = 0.40 * float(loop_score) if loop_detected else 0.0
-    snr_component = 0.20 * _compute_snr_threat(snr_score)
+    # no_pulse_component weight = 0.65:
+    #   No-pulse + suspicious SNR → 0.65 + 0.10*1.0 = 0.75 >= THREAT_THRESHOLD.
+    #   Pulse present + clean SNR → 0.00 + 0.00 = 0.00 → REAL.
+    no_pulse_component = 0.65 if not pulse_present else 0.0
+    loop_component = 0.30 * float(loop_score) if loop_detected else 0.0
+    snr_component = 0.10 * _compute_snr_threat(snr_score)
 
-    # Loop override: a confirmed synthetic loop is the strongest deepfake
-    # indicator — a deepfake can synthesise a fake pulse but cannot hide
-    # periodic repetition from autocorrelation.  This boost ensures that
-    # loop_detected=True can push the score above THREAT_THRESHOLD even
-    # when pulse_present=True (max without boost = 0.60 < 0.75).
-    loop_override_boost = 0.25 if loop_detected else 0.0
+    # Loop override boost = 0.40:
+    #   A confirmed synthetic loop is the strongest deepfake indicator — a
+    #   deepfake can synthesise a plausible pulse frequency but cannot hide
+    #   periodic autocorrelation repetition. Boost ensures loop_detected=True
+    #   crosses 0.75 even when pulse_present=True.
+    #   Example: 0 + 0.30*0.97 + 0.10 + 0.40 = 0.791 >= 0.75 → THREAT.
+    loop_override_boost = 0.40 if loop_detected else 0.0
 
     raw_threat_score = (no_pulse_component + loop_component
                         + snr_component + loop_override_boost)
