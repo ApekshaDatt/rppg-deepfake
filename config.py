@@ -64,3 +64,19 @@ CONF_BONUS_CLEAR_SCORE = 0.15   # bonus if threat_score far from threshold
 CONF_BONUS_PULSE_PRESENT = 0.05 # bonus if pulse detected
 CONF_BONUS_GOOD_QUALITY = 0.10  # bonus if signal_quality > 0.8
 SIGNAL_QUALITY_THRESHOLD = 0.8  # threshold for good signal quality bonus
+
+# ============================================================================
+# FACE DETECTION PARAMETERS (Person A)
+# ============================================================================
+ROI_PADDING = 10                        # pixels to shrink ROI inward from face edges
+MIN_FACE_SIZE = (80, 80)                # minimum (w, h) for a valid detected face
+
+HAAR_SCALE_FACTOR = 1.1                 # Haar cascade scale factor (lower = more sensitive)
+HAAR_MIN_NEIGHBORS = 5                  # Haar minimum neighbors (lower = more detections)
+
+# ============================================================================
+# ROI GEOMETRY RATIOS (Person A)
+# ============================================================================
+ROI_FOREHEAD_HEIGHT_RATIO = 0.30        # forehead = top 30% of face height
+ROI_FOREHEAD_WIDTH_RATIO = 0.60         # forehead = center 60% of face width
+ROI_CHEEK_HEIGHT_RATIO = 0.40           # cheeks = middle 40% of face height
