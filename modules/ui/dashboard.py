@@ -124,7 +124,7 @@ _DEFAULTS = dict(
     raw_sig_std=0.0, raw_sig_quality=0.0, raw_snr=0.0,
     raw_dominant_freq=0.0, raw_threat_score_str="—",
     pulse_present=False, loop_score=0.0,
-    camera_index=0, cap=None,
+    camera_index=0, cap=None, render_count=0,
 )
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
@@ -289,6 +289,8 @@ with col_right:
 
 # ── render_ui_state — pure placeholder updater ────────────────────────────
 def render_ui_state():
+    st.session_state.render_count += 1
+    rc = st.session_state.render_count
     v   = st.session_state.verdict
     cal = st.session_state.is_calibrating
 
@@ -382,7 +384,7 @@ def render_ui_state():
         )
         chart_ph.plotly_chart(fig_w, use_container_width=True,
                                config={"displayModeBar": False},
-                               key="rppg_waveform")
+                               key=f"rppg_waveform_{rc}")
     else:
         chart_ph.markdown("<div style='color:#555;text-align:center;padding:30px;'>"
                           "Waiting for signal…</div>", unsafe_allow_html=True)
@@ -424,7 +426,7 @@ def render_ui_state():
         )
         fft_ph.plotly_chart(fig_f, use_container_width=True,
                              config={"displayModeBar": False},
-                             key="fft_spectrum")
+                             key=f"fft_spectrum_{rc}")
     else:
         fft_ph.markdown("<div style='color:#555;text-align:center;padding:20px;'>"
                         "Waiting for FFT data…</div>", unsafe_allow_html=True)
