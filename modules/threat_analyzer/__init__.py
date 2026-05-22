@@ -102,12 +102,8 @@ from config import (
 # ============================================================================
 
 # Import submodule functions
-from modules.threat_analyzer.fft_analyzer import (
-    bandpass_filter, compute_snr, extract_dominant_frequency, estimate_bpm_from_freq
-)
-from modules.threat_analyzer.pattern_detector import (
-    detect_periodic_loops, analyze_signal_quality_indicators
-)
+from modules.threat_analyzer.fft_analyzer import analyze_fft, apply_bandpass
+from modules.threat_analyzer.pattern_detector import detect_loop, compute_autocorrelation
 from modules.threat_analyzer.threat_scorer import (
     compute_threat_score, compute_confidence, generate_verdict_and_confidence
 )
@@ -212,35 +208,26 @@ class ThreatAnalyzer:
             # ================================================================
             # STEP 1: Apply bandpass filter to extract cardiac frequency band
             # ================================================================
-            filtered_signal = bandpass_filter(signal, BANDPASS_LOW, BANDPASS_HIGH, fs)
+            filtered_signal = apply_bandpass(signal, fs, BANDPASS_LOW, BANDPASS_HIGH)
             
             # ================================================================
-            # STEP 2: Extract dominant frequency via FFT
+            # STEP 2: FFT analysis (dominant freq, SNR, pulse detection)
             # ================================================================
-            dominant_freq_hz, _ = extract_dominant_frequency(filtered_signal, fs)
+            fft_result = analyze_fft(filtered_signal, fs)
+            dominant_freq_hz = fft_result["dominant_freq_hz"]
+            snr_db = fft_result["snr_score"]
+            pulse_present = fft_result["pulse_present"]
+            bpm_analyzed = fft_result["estimated_bpm"]
             
             # ================================================================
-            # STEP 3: Convert frequency to BPM and validate
+            # STEP 3: Detect periodic loops (deepfake indicator)
             # ================================================================
-            bpm_analyzed = estimate_bpm_from_freq(dominant_freq_hz)
+            loop_result = detect_loop(filtered_signal)
+            loop_detected = loop_result["loop_detected"]
+            loop_correlation = loop_result["loop_score"]
             
             # ================================================================
-            # STEP 4: Compute signal-to-noise ratio
-            # ================================================================
-            snr_db = compute_snr(filtered_signal, BANDPASS_LOW, BANDPASS_HIGH, fs)
-            
-            # ================================================================
-            # STEP 5: Detect periodic loops (deepfake indicator)
-            # ================================================================
-            loop_detected, loop_correlation = detect_periodic_loops(filtered_signal, fs)
-            
-            # ================================================================
-            # STEP 6: Determine pulse presence
-            # ================================================================
-            pulse_present = (dominant_freq_hz > 0.0) and (bpm_analyzed > 0.0)
-            
-            # ================================================================
-            # STEP 7: Compute threat score (4-component fusion)
+            # STEP 4: Compute threat score (4-component fusion)
             # ================================================================
             threat_score = compute_threat_score(
                 pulse_present=pulse_present,
@@ -250,7 +237,7 @@ class ThreatAnalyzer:
             )
             
             # ================================================================
-            # STEP 8: Generate verdict and confidence
+            # STEP 5: Generate verdict and confidence
             # ================================================================
             verdict_str, confidence = generate_verdict_and_confidence(
                 threat_score=threat_score,
@@ -260,7 +247,7 @@ class ThreatAnalyzer:
             )
             
             # ================================================================
-            # STEP 9: Recompute confidence with full information
+            # STEP 6: Recompute confidence with full information
             # ================================================================
             confidence = compute_confidence(
                 snr_db=snr_db,
@@ -270,13 +257,13 @@ class ThreatAnalyzer:
             )
             
             # ================================================================
-            # STEP 10: Add to verdict history and aggregate
+            # STEP 7: Add to verdict history and aggregate
             # ================================================================
             self.verdict_history.append((verdict_str, confidence))
             aggregated_verdict = self._aggregate_verdicts()
             
             # ================================================================
-            # STEP 11: Round and format output
+            # STEP 8: Round and format output
             # ================================================================
             output_dict = {
                 "verdict": aggregated_verdict,
