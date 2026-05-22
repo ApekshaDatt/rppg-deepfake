@@ -1,0 +1,191 @@
+# =========================================================
+# OS GENERATED FILES
+# =========================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# =========================================================
+# PYTHON CACHE & ENVIRONMENTS
+# =========================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Python virtual environments
+.env/
+venv/
+env/
+ENV/
+.venv/
+
+# Python packaging
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+pip-wheel-metadata/
+
+# Python installers
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =========================================================
+# TESTING & COVERAGE
+# =========================================================
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+.pyre/
+.ruff_cache/
+
+# =========================================================
+# LOGS & DATABASES
+# =========================================================
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================================================
+# IDEs & EDITORS
+# =========================================================
+.idea/
+.vscode/
+.vs/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+.cproject
+.metadata/
+*.sublime-project
+*.sublime-workspace
+
+# =========================================================
+# NODE / FRONTEND
+# =========================================================
+node_modules/
+bower_components/
+.npm/
+.pnpm-store/
+.yarn/
+.next/
+.nuxt/
+.parcel-cache/
+
+# Frontend builds
+dist/
+build/
+out/
+coverage/
+
+# =========================================================
+# ENVIRONMENT VARIABLES & SECRETS
+# =========================================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Secrets
+secret.json
+secrets.json
+*.pem
+*.key
+*.crt
+*.p12
+
+# API Keys / Credentials
+credentials.json
+service-account.json
+
+# =========================================================
+# JUPYTER & DATA SCIENCE
+# =========================================================
+.ipynb_checkpoints/
+*.ipynb
+
+# =========================================================
+# MACHINE LEARNING / AI MODELS
+# =========================================================
+*.h5
+*.hdf5
+*.onnx
+*.pb
+*.pt
+*.pth
+*.ckpt
+models/
+checkpoints/
+
+# =========================================================
+# TEMP FILES
+# =========================================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.old
+
+# =========================================================
+# DOCKER
+# =========================================================
+.docker/
+docker-compose.override.yml
+
+# =========================================================
+# MAC / LINUX EXECUTABLES
+# =========================================================
+*.out
+*.exe
+
+# =========================================================
+# PROJECT SPECIFIC
+# =========================================================
+# Ignore generated reports
+reports/
+exports/
+
+# Ignore runtime files
+runtime/
+instance/
+
+# Ignore local configs
+local_settings.py
+config.local.py
