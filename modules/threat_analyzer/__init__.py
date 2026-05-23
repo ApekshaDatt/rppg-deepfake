@@ -187,6 +187,9 @@ def analyze_threat(
         loop_result = detect_loop(filtered)
 
         # ── Step 4: Score + verdict (with rolling majority vote) ──────────
+        # Inject upstream signal_quality into fft_result so score_threat
+        # can include the quality component in the weighted formula.
+        fft_result["signal_quality"] = float(signal_quality)
         result = score_threat(fft_result, loop_result)
 
         return result

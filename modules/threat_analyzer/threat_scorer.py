@@ -34,32 +34,19 @@ _verdict_history: deque = deque(maxlen=VERDICT_WINDOW)
 # ===========================================================================
 
 def _compute_snr_threat(snr: float) -> float:
-    """Return a suspicion score in [0.0, 1.0] based on the SNR value.
-
-    * SNR near zero (flat / dead signal)       → 1.0  (very suspicious)
-    * SNR in normal biological range            → 0.0  (healthy)
-    * SNR unnaturally high (synthetic purity)   → 1.0  (very suspicious)
-
-    "Unnaturally high" is defined as > SNR_THRESHOLD × 3.
     """
-    if snr <= 6.0:
-        # Dead / flat signal or pure noise (periodogram of white noise)
-        # maximally suspicious
+    Returns suspicion score based on SNR value.
+
+    Normal biological SNR range is 2.0–20.0:
+      * snr < 2.0   → flat/dead signal (fake)          → 1.0
+      * snr > 20.0  → unnaturally clean (synthetic)    → 1.0
+      * 2.0–20.0    → normal biological range           → 0.0
+    """
+    if snr < 2.0:
         return 1.0
-
-    upper_bound = SNR_THRESHOLD * 3.0
-
-    if snr > upper_bound:
-        # Unnaturally clean — synthetic purity
+    if snr > 20.0:
         return 1.0
-
-    if snr >= SNR_THRESHOLD:
-        # Normal biological range — not suspicious
-        return 0.0
-
-    # Below threshold but above zero → linearly suspicious
-    # (the lower the SNR, the more suspicious)
-    return 1.0 - (snr / SNR_THRESHOLD)
+    return 0.0
 
 
 def _majority_vote(history: deque) -> str:
@@ -118,23 +105,24 @@ def score_threat(fft_result: dict, loop_result: dict) -> dict:
     loop_detected    = loop_result.get("loop_detected", False)
     loop_score       = loop_result.get("loop_score", 0.0)
 
-    # no_pulse_component weight = 0.75:
-    #   No-pulse → 0.75 >= THREAT_THRESHOLD (instant threat).
-    #   Pulse present + clean SNR → 0.00 + 0.00 = 0.00 → REAL.
-    no_pulse_component = 0.75 if not pulse_present else 0.0
-    loop_component = 0.30 * float(loop_score) if loop_detected else 0.0
-    snr_component = 0.10 * _compute_snr_threat(snr_score)
-
-    # Loop override boost = 0.40:
-    #   A confirmed synthetic loop is the strongest deepfake indicator — a
-    #   deepfake can synthesise a plausible pulse frequency but cannot hide
-    #   periodic autocorrelation repetition. Boost ensures loop_detected=True
-    #   crosses 0.75 even when pulse_present=True.
-    #   Example: 0 + 0.30*0.97 + 0.10 + 0.40 = 0.791 >= 0.75 → THREAT.
-    loop_override_boost = 0.40 if loop_detected else 0.0
+    # ── (a) Compute raw threat score ──────────────────────────────────────
+    # Weights: no_pulse=0.20, loop=0.40, snr=0.30, quality=0.10  (sum=1.0)
+    # Score is HIGH (→1.0) for FAKE, LOW (→0.0) for REAL.
+    no_pulse_component = 0.20 if not pulse_present else 0.0
+    # To prevent the natural high autocorrelation of real human pulses from falsely 
+    # inflating the threat score, we only apply the loop penalty if the system 
+    # actually detected a synthetic loop, OR if there is no biological pulse at all.
+    if loop_detected or not pulse_present:
+        loop_component = 0.40 * float(loop_score)
+    else:
+        loop_component = 0.0
+    snr_component      = 0.30 * _compute_snr_threat(snr_score)
+    # quality_component uses signal_quality from fft_result if provided
+    signal_quality     = fft_result.get("signal_quality", 1.0)
+    quality_component  = 0.10 * (1.0 - float(signal_quality))
 
     raw_threat_score = (no_pulse_component + loop_component
-                        + snr_component + loop_override_boost)
+                        + snr_component + quality_component)
     raw_threat_score = max(0.0, min(1.0, raw_threat_score))  # clamp [0, 1]
 
     # ── (b) Map raw score to this frame's verdict ─────────────────────────
@@ -205,6 +193,7 @@ if __name__ == "__main__":
         "snr_score": 8.0,
         "pulse_present": True,
         "estimated_bpm": 72.0,
+        "signal_quality": 0.8,   # good quality — real biological signal
     }
     loop_real = {"loop_detected": False, "loop_score": 0.3}
 
@@ -233,6 +222,7 @@ if __name__ == "__main__":
         "snr_score": 0.1,
         "pulse_present": False,
         "estimated_bpm": 0.0,
+        "signal_quality": 0.2,   # poor quality — synthetic flat signal
     }
     loop_flat = {"loop_detected": True, "loop_score": 0.97}
 
@@ -261,6 +251,7 @@ if __name__ == "__main__":
         "snr_score": 45.0,
         "pulse_present": True,
         "estimated_bpm": 60.0,
+        "signal_quality": 0.1,   # very poor quality — synthetic loop signal
     }
     loop_loop = {"loop_detected": True, "loop_score": 0.98}
 
